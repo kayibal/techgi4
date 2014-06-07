@@ -25,7 +25,10 @@ int main(int argc, char *argv[]) {
         printf("Usage: ./client clientIP clientPort chordIp cordPort\n");
         exit(1);
     }
-
+    //Time measurement start
+    unsigned long start, end;
+    start = current_time_millis();
+    
     // Define client address
     clientAddr.ip = argv[1];
     clientAddr.port = atoi(argv[2]);
@@ -84,6 +87,11 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
     }
+    
+    // print the measured time and average
+    end = current_time_millis();
+    printf("%.2f seconds\n", (double) (end - start) / 1000);
+    printf("Average: %.2f seconds\n", ((double) (end - start) / 1000) / (max*3));
 
     return EXIT_SUCCESS;
 }
