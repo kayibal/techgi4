@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-#define MAX_BUFFER_LENGTH 100
+#define MAX_BUFFER_LENGTH 100 //Wozu??
 #define MAX_HASH_TABLE_SIZE 256
 
 typedef struct {

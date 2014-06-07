@@ -20,6 +20,7 @@
 #include "packing.h"
 #include "hashTable.h"
 #include "forwarding.h"
+#include "fingertable.h"
 
 #define MAX_BUFFER_LENGTH 100
 #define MAX_HASH_TABLE_SIZE 256
@@ -51,8 +52,66 @@ int main(int argc, char *argv[]) {
     int prePort = atoi(argv[7]);
     char *preIp = argv[8];
     printf("sucPort: %i\n", sucPort);
-
+    // calculate our intervall
+    int upper = nodeID;
+    int lower = preId +1;
     printf("Node %i started with port %i.\n\n", nodeId, nodePort);
+    
+    /*
+     Build the fingertable here of size log(n) = 8 because n is 256
+     for node 0
+     0: 1 -> 63
+     1: 2 -> 63
+     2: 4 -> 63
+     3: 8 -> 63
+     4: 16 -> 63
+     5: 32 -> 63
+     6: 64 -> 128
+     7: 128 -> 191
+     
+     
+     for node 127
+     0: 127 + 1 % 256 = 128 -> 191
+     1: 127 + 2 -> 191
+     2: 127 + 4 -> 191
+     3: 127 + 8-> 191
+     4: 127 + 16 -> 191
+     5: 127 + 32 = 191 -> 191
+     6: 127 + 64  = 1 -> 63
+     7: 127 + 128 % 256 = 1 -> 63
+     
+     we have four nodes so our node ids are
+     0 contains keys 192 - 255 and 0
+     63 contains keys 1-63
+     127 contains keys 64 - 127
+     191 contains keys 128 - 191
+     
+     
+     0 . . . . . . . 63
+     .                .
+     .                .
+     .                .
+     .                .
+     191 . . . . . . 128
+     
+    */
+    
+    //build Fingertable
+    int m = 8;
+    buildFingerTable(m);
+    for (int i = 0; i < m; i++){
+        //calculate next node
+        int nId = (nodeId + 2^i)%2^m
+        //TODO
+        //check if node exists hmmm....??? Das ist in der Aufgabenstellung sehr schwammig wie wir das machen sollen...
+        if(exists){
+            //get ip and port and build finger
+            addFinger(finger);
+        } else {
+            //search for next biggest node and build finger
+            addFinger(finger);
+        }
+    }
     
     // Create Hashtable
     createTable();
@@ -96,6 +155,10 @@ int main(int argc, char *argv[]) {
         unpackData(buffer, order, &key, &value, clientIp, &clientPort);
 
         // Forwarding
+        /* We should divide the keys in intervalls and map these to the nodes
+         * siehe oben
+         */
+        /*
         if((key % 4) != nodeId){
             printf("Need to forward... key: %u target: %i\n", key, (key % 4));
 
@@ -107,7 +170,33 @@ int main(int argc, char *argv[]) {
             clearData(buffer);
             continue;
         }
-
+         
+*/      //do we need to forward?
+        if (upper - lower < 0){
+            // special case
+            // one intervall must contain the 0
+            // Just check between lower and 256
+            // and 0 and upper
+            if( !((lower < key && key < 256) && (0 < key && key <= upper)) ){
+                finger* forwardTo = getFinger(key);
+                if(forwarding(buffer, forwardTo->ip, forwardTo->port) == -1){
+                    printf("Forwarding failed...");
+                    return EXIT_FAILURE;
+                }
+                clearData(Buffer);
+                continue;
+            }
+        } else {
+            if( !(lower < key && key <= upper) ){
+                finger* forwardTo = getFinger(key);
+                if(forwarding(buffer, forwardTo->ip, forwardTo->port) == -1){
+                    printf("Forwarding failed...");
+                    return EXIT_FAILURE;
+                }
+            }
+            clearData(Buffer);
+            continue;
+        }
         if((client_he = gethostbyname(clientIp)) == NULL) {  // get the host info
             herror("gethostbyname");
         }
@@ -156,5 +245,6 @@ int main(int argc, char *argv[]) {
             printf("Answer successfully sent to client! \n\tIP: %s\n\tPort: %i\n\n", clientIp, clientPort);
         }
     }
+    destroyFingerTable();
     return 0;
 }
